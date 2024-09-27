@@ -1,0 +1,773 @@
+openapi: 3.0.0
+info:
+  title: Product API
+  version: 1.0.0
+servers:
+  - url: http://localhost
+paths:
+  /api/products:
+    get:
+      summary: Get list of products
+      description: Retrieve a list of products with optional sorting, filtering, and pagination.
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination (starting from 1)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: size
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+        - name: sort
+          in: query
+          description: >
+            Array of fields used for sorting. Prefix with '-' for descending order.
+            If both ascending and descending order are provided for the same field,
+            an error response will be returned.
+          required: false
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - id
+                - name
+                - creationDate
+                - price
+                - partNumber
+                - unitOfMeasure
+                - coordinates.x
+                - coordinates.y
+                - manufacturer.id
+                - manufacturer.name
+                - manufacturer.employeesCount
+                - manufacturer.type
+                - -id
+                - -name
+                - -creationDate
+                - -price
+                - -partNumber
+                - -unitOfMeasure
+                - -coordinates.x
+                - -coordinates.y
+                - -manufacturer.id
+                - -manufacturer.name
+                - -manufacturer.employeesCount
+                - -manufacturer.type
+            default:
+              - id
+        # Filtering parameters
+        - name: filter
+          in: query
+          required: false
+          description: >
+            Array of fields used for filtering. Each element must contain the name of the field and the filtering operator in square brackets, followed by the value to filter by. Supported operators are eq (equal), ne (not equal), gt (greater than), lt (less than), gte (greater than or equal to), and lte (less than or equal to). If the value type is incorrect, an error response will be returned.
+            
+            **Example:** `filter=id[eq]=1`
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              pattern: '^(id|name|creationDate|price|partNumber|unitOfMeasure|coordinates\.x|coordinates\.y|manufacturer\.id|manufacturer\.name|manufacturer\.employeesCount|manufacturer\.type)\[(eq|ne|gt|lt|gte|lte)\]=.+$'
+      responses:
+        '200':
+          description: A list of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+        '400':
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 400
+                  message:
+                    type: string
+                    example: Invalid query parameter value
+                  time:
+                    type: string
+                    format: date-time
+                    example: '2024-09-26T14:30:10Z'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 500
+                  message:
+                    type: string
+                    example: Internal server error
+                  time:
+                    type: string
+                    format: date-time
+                    example: '2024-09-26T14:30:10Z'
+
+        default:
+          description: Returns error code, message, and time in case of error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create a new product
+      requestBody:
+        description: Product object to be created
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInput'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 400
+                  message:
+                    type: string
+                    example: Invalid data in request
+                  time:
+                    type: string
+                    format: date-time
+                    example: '2024-09-26T14:30:10Z'
+        '409':
+          description: Conflict - Duplicate unique field
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 409
+                  message:
+                    type: string
+                    example: Duplicate unique field
+                  time:
+                    type: string
+                    format: date-time
+                    example: '2024-09-26T14:30:10Z'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 500
+                  message:
+                    type: string
+                    example: Internal server error
+                  time:
+                    type: string
+                    format: date-time
+                    example: '2024-09-26T14:30:10Z'
+        default:
+          description: Returns error code, message, and time in case of error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    /api/products/{id}:
+      get:
+        summary: Get product by ID
+        parameters:
+          - name: id
+            in: path
+            description: ID of the product to retrieve
+            required: true
+            schema:
+              type: integer
+              format: int64
+              minimum: 1
+        responses:
+          '200':
+            description: Product retrieved successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Product'
+          '400':
+            description: Invalid ID
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 400
+                    message:
+                      type: string
+                      example: Invalid product ID
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+
+          '404':
+            description: Product not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 404
+                    message:
+                      type: string
+                      example: Product with specified ID not found
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+
+          '500':
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 500
+                    message:
+                      type: string
+                      example: Internal server error
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          default:
+            description: Returns error code, message, and time in case of error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+      put:
+        summary: Update product by ID
+        parameters:
+          - name: id
+            in: path
+            description: ID of the product to update
+            required: true
+            schema:
+              type: integer
+              format: int64
+              minimum: 1
+        requestBody:
+          description: Product object with updated data
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductInput'
+        responses:
+          '200':
+            description: Product updated successfully
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Product'
+          '400':
+            description: Invalid request data
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 400
+                    message:
+                      type: string
+                      example: Invalid data in request
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          '404':
+            description: Product not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 404
+                    message:
+                      type: string
+                      example: Product with specified ID not found
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          '409':
+            description: Conflict - Duplicate unique field
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 409
+                    message:
+                      type: string
+                      example: Duplicate unique field
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+
+          '500':
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 500
+                    message:
+                      type: string
+                      example: Internal server error
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          default:
+            description: Returns error code, message, and time in case of error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+      delete:
+        summary: Delete product by ID
+        parameters:
+          - name: id
+            in: path
+            description: ID of the product to delete
+            required: true
+            schema:
+              type: integer
+              format: int64
+              minimum: 1
+        responses:
+          '204':
+            description: Product deleted successfully
+          '400':
+            description: Invalid ID
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 400
+                    message:
+                      type: string
+                      example: Invalid product ID
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          '404':
+            description: Product not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 404
+                    message:
+                      type: string
+                      example: Product with specified ID not found
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          '500':
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 500
+                    message:
+                      type: string
+                      example: Internal server error
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          default:
+            description: Returns error code, message, and time in case of error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+    /api/products/price/sum:
+      get:
+        summary: Calculate the sum of all product prices
+        responses:
+          '200':
+            description: Sum of product prices
+            content:
+              application/json:
+                schema:
+                  type: number
+                  format: double
+          '500':
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 500
+                    message:
+                      type: string
+                      example: Internal server error
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          default:
+            description: Returns error code, message, and time in case of error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+    /api/products/search/{substring}:
+      get:
+        summary: Search products by name substring
+        parameters:
+          - name: substring
+            in: path
+            description: Substring to search within product names
+            required: true
+            schema:
+              type: string
+        responses:
+          '200':
+            description: List of products containing the substring in their name
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Product'
+          '400':
+            description: Invalid substring parameter
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 400
+                    message:
+                      type: string
+                      example: Invalid substring parameter
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          '500':
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 500
+                    message:
+                      type: string
+                      example: Internal server error
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          default:
+            description: Returns error code, message, and time in case of error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+    /api/products/manufacturers:
+      get:
+        summary: Get unique manufacturers across all products
+        responses:
+          '200':
+            description: List of unique manufacturers
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Organization'
+          '500':
+            description: Internal server error
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    code:
+                      type: integer
+                      format: int32
+                      example: 500
+                    message:
+                      type: string
+                      example: Internal server error
+                    time:
+                      type: string
+                      format: date-time
+                      example: '2024-09-26T14:30:10Z'
+          default:
+            description: Returns error code, message, and time in case of error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+  components:
+    schemas:
+      Product:
+        type: object
+        properties:
+          id:
+            type: integer
+            format: int64
+            description: Unique identifier for the product
+            minimum: 1
+          name:
+            type: string
+            description: Name of the product
+            minLength: 1
+          coordinates:
+            $ref: '#/components/schemas/Coordinates'
+            description: Coordinates associated with the product
+          creationDate:
+            type: string
+            format: date-time
+            description: Creation date of the product
+          price:
+            type: number
+            format: double
+            description: Price of the product
+            minimum: 0
+            exclusiveMinimum: true
+            nullable: true
+          partNumber:
+            type: string
+            description: Part number of the product
+            nullable: true
+          unitOfMeasure:
+            $ref: '#/components/schemas/UnitOfMeasure'
+            description: Unit of measure for the product
+          manufacturer:
+            $ref: '#/components/schemas/Organization'
+            description: Manufacturer of the product
+        required:
+          - id
+          - name
+          - coordinates
+          - creationDate
+          - unitOfMeasure
+          - manufacturer
+      ProductInput:
+        type: object
+        properties:
+          name:
+            type: string
+            description: Name of the product
+            minLength: 1
+          coordinates:
+            $ref: '#/components/schemas/Coordinates'
+            description: Coordinates associated with the product
+          price:
+            type: number
+            format: double
+            description: Price of the product
+            minimum: 0
+            exclusiveMinimum: true
+            nullable: true
+          partNumber:
+            type: string
+            description: Part number of the product
+            nullable: true
+          unitOfMeasure:
+            $ref: '#/components/schemas/UnitOfMeasure'
+            description: Unit of measure for the product
+          manufacturer:
+            $ref: '#/components/schemas/OrganizationInput'
+            description: Manufacturer of the product
+        required:
+          - name
+          - coordinates
+          - unitOfMeasure
+          - manufacturer
+      Coordinates:
+        type: object
+        properties:
+          x:
+            type: integer
+            format: int64
+            description: X coordinate
+          y:
+            type: number
+            format: float
+            description: Y coordinate (maximum 398)
+            maximum: 398
+        required:
+          - x
+          - y
+      Organization:
+        type: object
+        properties:
+          id:
+            type: integer
+            format: int64
+            description: Unique identifier for the organization
+            minimum: 1
+          name:
+            type: string
+            description: Name of the organization
+            minLength: 1
+          employeesCount:
+            type: integer
+            format: int64
+            description: Number of employees in the organization
+            minimum: 1
+            nullable: true
+          type:
+            $ref: '#/components/schemas/OrganizationType'
+            description: Type of the organization
+            nullable: true
+        required:
+          - id
+          - name
+      OrganizationInput:
+        type: object
+        properties:
+          name:
+            type: string
+            description: Name of the organization
+            minLength: 1
+          employeesCount:
+            type: integer
+            format: int64
+            description: Number of employees in the organization
+            minimum: 1
+            nullable: true
+          type:
+            $ref: '#/components/schemas/OrganizationType'
+            description: Type of the organization
+            nullable: true
+        required:
+          - name
+      UnitOfMeasure:
+        type: string
+        description: Unit of measure enumeration
+        enum:
+          - CENTIMETERS
+          - SQUARE_METERS
+          - PCS
+          - GRAMS
+      OrganizationType:
+        type: string
+        description: Organization type enumeration
+        enum:
+          - COMMERCIAL
+          - PUBLIC
+          - GOVERNMENT
+          - PRIVATE_LIMITED_COMPANY
+          - OPEN_JOINT_STOCK_COMPANY
+      Error:
+        type: object
+        properties:
+          code:
+            type: integer
+            format: int32
+            example: 400
+          message:
+            type: string
+            example: An error occurred
+          time:
+            type: string
+            format: date-time
+            example: '2024-09-26T14:30:10Z'
