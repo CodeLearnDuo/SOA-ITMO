@@ -3,19 +3,16 @@ info:
   title: Product API
   version: 1.0.0
 servers:
-  # Added by API Auto Mocking Plugin
-  - description: SwaggerHub API Auto Mocking
-    url: https://virtserver.swaggerhub.com/IPONOMAREV1991/SOA1/1.0.0
-  - url: http://localhost
+  - url: 'https://localhost:8080/api/v1'
 paths:
-  /api/products:
+  /products/:
     get:
       summary: Get list of products
       description: Retrieve a list of products with optional sorting, filtering, and pagination.
       parameters:
         - name: page
           in: query
-          description: Page number for pagination (starting from 1)
+          description: Page number for pagination (starting from 1), input -1 to reach last page.
           required: false
           schema:
             type: integer
@@ -54,6 +51,7 @@ paths:
                 - manufacturer.name
                 - manufacturer.employeesCount
                 - manufacturer.type
+                - substring
                 - -id
                 - -name
                 - -creationDate
@@ -68,7 +66,6 @@ paths:
                 - -manufacturer.type
             default:
               - id
-        # Filtering parameters
         - name: filter
           in: query
           required: false
@@ -82,7 +79,7 @@ paths:
             type: array
             items:
               type: string
-              pattern: '^(id|name|creationDate|price|partNumber|unitOfMeasure|coordinates\.x|coordinates\.y|manufacturer\.id|manufacturer\.name|manufacturer\.employeesCount|manufacturer\.type)\[(eq|ne|gt|lt|gte|lte)\]=.+$'
+              pattern: '^(id|name|creationDate|price|partNumber|unitOfMeasure|coordinates\.x|coordinates\.y|manufacturer\.id|manufacturer\.name|manufacturer\.employeesCount|manufacturer\.type|substring)\[(eq|ne|gt|lt|gte|lte)\]=.+$'
       responses:
         '200':
           description: A list of products
@@ -100,13 +97,16 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 400
-                  message:
+                  messages:
                     type: string
                     example: Invalid query parameter value
+                  invalidParameters:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      - "page must be greater than 0"
+                      - "invalid sort field: 'unknownField'"
                   time:
                     type: string
                     format: date-time
@@ -119,10 +119,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 500
                   message:
                     type: string
                     example: Internal server error
@@ -161,10 +157,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 400
                   message:
                     type: string
                     example: Invalid data in request
@@ -179,13 +171,35 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 409
                   message:
                     type: string
                     example: Duplicate unique field
+                  time:
+                    type: string
+                    format: date-time
+                    example: '2024-09-26T14:30:10Z'
+
+        '422':
+          description: Unprocessable Entity - Validation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Validation failed for one or more fields
+                  errors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field:
+                          type: string
+                          example: "name"
+                        error:
+                          type: string
+                          example: "must not be empty"
                   time:
                     type: string
                     format: date-time
@@ -198,10 +212,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 500
                   message:
                     type: string
                     example: Internal server error
@@ -216,7 +226,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /api/products/{id}:
+  /products/{id}:
     get:
       summary: Get product by ID
       parameters:
@@ -242,10 +252,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 400
                   message:
                     type: string
                     example: Invalid product ID
@@ -261,10 +267,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 404
                   message:
                     type: string
                     example: Product with specified ID not found
@@ -280,10 +282,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 500
                   message:
                     type: string
                     example: Internal server error
@@ -297,7 +295,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-    put:
+    patch:
       summary: Update product by ID
       parameters:
         - name: id
@@ -329,10 +327,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 400
                   message:
                     type: string
                     example: Invalid data in request
@@ -347,10 +341,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 404
                   message:
                     type: string
                     example: Product with specified ID not found
@@ -365,10 +355,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 409
                   message:
                     type: string
                     example: Duplicate unique field
@@ -384,10 +370,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 500
                   message:
                     type: string
                     example: Internal server error
@@ -422,10 +404,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 400
                   message:
                     type: string
                     example: Invalid product ID
@@ -440,10 +418,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 404
                   message:
                     type: string
                     example: Product with specified ID not found
@@ -458,10 +432,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 500
                   message:
                     type: string
                     example: Internal server error
@@ -475,7 +445,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /api/products/price/sum:
+  /products/price/sum:
     get:
       summary: Calculate the sum of all product prices
       responses:
@@ -484,8 +454,12 @@ paths:
           content:
             application/json:
               schema:
-                type: number
-                format: double
+                type: object
+                properties:
+                  totalPrice:
+                    type: number
+                    format: double
+                    example: 0.0
         '500':
           description: Internal server error
           content:
@@ -493,10 +467,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 500
                   message:
                     type: string
                     example: Internal server error
@@ -510,68 +480,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /api/products/search/{substring}:
-    get:
-      summary: Search products by name substring
-      parameters:
-        - name: substring
-          in: path
-          description: Substring to search within product names
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: List of products containing the substring in their name
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Product'
-        '400':
-          description: Invalid substring parameter
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 400
-                  message:
-                    type: string
-                    example: Invalid substring parameter
-                  time:
-                    type: string
-                    format: date-time
-                    example: '2024-09-26T14:30:10Z'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 500
-                  message:
-                    type: string
-                    example: Internal server error
-                  time:
-                    type: string
-                    format: date-time
-                    example: '2024-09-26T14:30:10Z'
-        default:
-          description: Returns error code, message, and time in case of error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /api/products/manufacturers:
+
+  /products/manufacturers:
     get:
       summary: Get unique manufacturers across all products
       responses:
@@ -590,10 +500,6 @@ paths:
               schema:
                 type: object
                 properties:
-                  code:
-                    type: integer
-                    format: int32
-                    example: 500
                   message:
                     type: string
                     example: Internal server error
@@ -607,6 +513,63 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /enums/organization-type:
+    get:
+      summary: Get available organization types
+      description: Returns all possible values for the OrganizationType enum
+      responses:
+        '200':
+          description: List of all available organization type values
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationType'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
+                  time:
+                    type: string
+                    format: date-time
+                    example: '2024-09-26T14:30:10Z'
+
+  /enums/unit-of-measure:
+    get:
+      summary: Get available units of measure
+      description: Returns all possible values for the UnitOfMeasure enum
+      responses:
+        '200':
+          description: List of all available unit of measure values
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UnitOfMeasure'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Internal server error
+                  time:
+                    type: string
+                    format: date-time
+                    example: '2024-09-26T14:30:10Z'
+
 components:
   schemas:
     Product:
@@ -766,7 +729,7 @@ components:
         code:
           type: integer
           format: int32
-          example: 400
+          example: 404
         message:
           type: string
           example: An error occurred
