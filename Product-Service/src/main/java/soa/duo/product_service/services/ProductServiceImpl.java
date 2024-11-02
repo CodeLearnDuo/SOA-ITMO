@@ -83,6 +83,14 @@ public class ProductServiceImpl implements ProductService {
             throw new DataIntegrityViolationException("Duplicate unique field");
         }
 
+        if (productInput.coordinates().getY() > 398) {
+            throw new DataIntegrityViolationException("Coordinate Y out of range, must be in range [0, 398]");
+        }
+
+        if (productInput.partNumber().length() < 19) {
+            throw new DataIntegrityViolationException("Part number's length less than 19");
+        }
+
         Product product = new Product();
         product.setName(productInput.name());
         product.setCoordinates(productInput.coordinates());
