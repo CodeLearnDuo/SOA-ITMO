@@ -25,6 +25,6 @@ public class Organization {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private OrganizationType organizationType;
+    private OrganizationType type;
 
 }

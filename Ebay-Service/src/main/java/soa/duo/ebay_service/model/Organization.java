@@ -12,6 +12,6 @@ public class Organization {
 
     private int employeesCount;
 
-    private OrganizationType organizationType;
+    private OrganizationType type;
 
 }
