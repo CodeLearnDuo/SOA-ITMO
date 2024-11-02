@@ -102,7 +102,7 @@ public class ProductServiceImpl implements ProductService {
         Organization manufacturer = new Organization();
         manufacturer.setName(productInput.manufacturer().name());
         manufacturer.setEmployeesCount(productInput.manufacturer().employeesCount());
-        manufacturer.setOrganizationType(productInput.manufacturer().organizationType());
+        manufacturer.setType(productInput.manufacturer().type());
 
         Organization savedManufacturer = organizationRepository.save(manufacturer);
 
@@ -148,7 +148,7 @@ public class ProductServiceImpl implements ProductService {
 
         manufacturer.setName(productInput.manufacturer().name());
         manufacturer.setEmployeesCount(productInput.manufacturer().employeesCount());
-        manufacturer.setOrganizationType(productInput.manufacturer().organizationType());
+        manufacturer.setType(productInput.manufacturer().type());
 
         Organization savedManufacturer = organizationRepository.save(manufacturer);
         product.setManufacturer(savedManufacturer);
@@ -214,7 +214,7 @@ public class ProductServiceImpl implements ProductService {
                     product.getManufacturer().getId(),
                     product.getManufacturer().getName(),
                     product.getManufacturer().getEmployeesCount(),
-                    product.getManufacturer().getOrganizationType()
+                    product.getManufacturer().getType()
             );
         }
 
@@ -234,7 +234,7 @@ public class ProductServiceImpl implements ProductService {
                 organization.getId(),
                 organization.getName(),
                 organization.getEmployeesCount(),
-                organization.getOrganizationType()
+                organization.getType()
         );
     }
 
