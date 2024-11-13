@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import soa.duo.product_service.dtos.OrganizationResponse;
 import soa.duo.product_service.dtos.ProductInput;
 import soa.duo.product_service.dtos.ProductResponse;
-import soa.duo.product_service.model.enums.UnitOfMeasure;
 import soa.duo.product_service.services.ProductService;
 
 import java.time.LocalDateTime;
@@ -75,6 +74,7 @@ public class ProductsController {
             Map<String, Object> body = new HashMap<>();
             body.put("message", "Duplicate unique field");
             body.put("time", LocalDateTime.now());
+            log.debug(e.getMessage());
             return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
         } catch (Exception e) {
             Map<String, Object> body = new HashMap<>();
@@ -212,53 +212,52 @@ public class ProductsController {
         }
     }
 
-    @PatchMapping("/price/increase/{percent}")
-    public ResponseEntity<?> increasePrices(@PathVariable("percent") double percent) {
-        try {
-            productService.increasePricesForAllProducts(percent);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", e.getMessage());
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.badRequest().body(body);
-        } catch (Exception e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Internal server error");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
-        }
-    }
-
-    @GetMapping("/filter/unit-of-measure/{unitOfMeasure}")
-    public ResponseEntity<?> getProductsByUnitOfMeasure(@PathVariable("unitOfMeasure") String unitOfMeasure) {
-        try {
-            if (Arrays.stream(UnitOfMeasure.values()).noneMatch(u -> u.name().equalsIgnoreCase(unitOfMeasure))) {
-                Map<String, Object> body = new HashMap<>();
-                body.put("message", "Invalid unit of measure parameter");
-                body.put("time", LocalDateTime.now());
-                return ResponseEntity.badRequest().body(body);
-            }
-
-            List<ProductResponse> products = productService.getProductsByUnitOfMeasure(unitOfMeasure.toUpperCase());
-
-            if (products.isEmpty()) {
-                Map<String, Object> body = new HashMap<>();
-                body.put("message", "No products found with the specified unit of measure");
-                body.put("time", LocalDateTime.now());
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
-            }
-
-            return ResponseEntity.ok(products);
-
-        } catch (Exception e) {
-            log.debug(e.getMessage());
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Internal server error");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
-        }
-    }
-
+//    @PatchMapping("/price/increase/{percent}")
+//    public ResponseEntity<?> increasePrices(@PathVariable("percent") double percent) {
+//        try {
+//            productService.increasePricesForAllProducts(percent);
+//            return ResponseEntity.noContent().build();
+//        } catch (IllegalArgumentException e) {
+//            Map<String, Object> body = new HashMap<>();
+//            body.put("message", e.getMessage());
+//            body.put("time", LocalDateTime.now());
+//            return ResponseEntity.badRequest().body(body);
+//        } catch (Exception e) {
+//            Map<String, Object> body = new HashMap<>();
+//            body.put("message", "Internal server error");
+//            body.put("time", LocalDateTime.now());
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+//        }
+//    }
+//
+//    @GetMapping("/filter/unit-of-measure/{unitOfMeasure}")
+//    public ResponseEntity<?> getProductsByUnitOfMeasure(@PathVariable("unitOfMeasure") String unitOfMeasure) {
+//        try {
+//            if (Arrays.stream(UnitOfMeasure.values()).noneMatch(u -> u.name().equalsIgnoreCase(unitOfMeasure))) {
+//                Map<String, Object> body = new HashMap<>();
+//                body.put("message", "Invalid unit of measure parameter");
+//                body.put("time", LocalDateTime.now());
+//                return ResponseEntity.badRequest().body(body);
+//            }
+//
+//            List<ProductResponse> products = productService.getProductsByUnitOfMeasure(unitOfMeasure.toUpperCase());
+//
+//            if (products.isEmpty()) {
+//                Map<String, Object> body = new HashMap<>();
+//                body.put("message", "No products found with the specified unit of measure");
+//                body.put("time", LocalDateTime.now());
+//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+//            }
+//
+//            return ResponseEntity.ok(products);
+//
+//        } catch (Exception e) {
+//            log.debug(e.getMessage());
+//            Map<String, Object> body = new HashMap<>();
+//            body.put("message", "Internal server error");
+//            body.put("time", LocalDateTime.now());
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+//        }
+//    }
 
 }

@@ -18,7 +18,7 @@ public class ProductFilterResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getProductsByUnitOfMeasure(@PathParam("unitOfMeasure") String unitOfMeasure) {
         try {
-            String result = productFilterService.fetchProductsByUnitOfMeasure(unitOfMeasure);
+            String result = productFilterService.fetchAndFilterProductsByUnitOfMeasure(unitOfMeasure);
             return Response.ok(result, MediaType.APPLICATION_JSON).build();
         } catch (Exception e) {
             e.printStackTrace();

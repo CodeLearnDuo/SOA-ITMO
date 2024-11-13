@@ -1,5 +1,6 @@
 package soa.duo.ebay_service.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import soa.duo.ebay_service.model.enums.OrganizationType;
 
@@ -12,6 +13,7 @@ public class Organization {
 
     private int employeesCount;
 
+    @JsonProperty("organizationType")
     private OrganizationType type;
 
 }

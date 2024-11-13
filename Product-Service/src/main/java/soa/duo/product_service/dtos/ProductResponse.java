@@ -6,6 +6,7 @@ import soa.duo.product_service.model.enums.UnitOfMeasure;
 import java.time.LocalDateTime;
 
 public record ProductResponse(
+        Integer id,
         String name,
         Coordinates coordinates,
         LocalDateTime creationDate,
@@ -13,5 +14,5 @@ public record ProductResponse(
         String partNumber,
         UnitOfMeasure unitOfMeasure,
         OrganizationResponse manufacturer
-){
-}
+) {}
+

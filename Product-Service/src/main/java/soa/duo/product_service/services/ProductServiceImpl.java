@@ -219,6 +219,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return new ProductResponse(
+                product.getId(),
                 product.getName(),
                 product.getCoordinates(),
                 product.getCreationDate(),
@@ -228,6 +229,7 @@ public class ProductServiceImpl implements ProductService {
                 organizationResponse
         );
     }
+
 
     private OrganizationResponse mapToOrganizationResponse(Organization organization) {
         return new OrganizationResponse(

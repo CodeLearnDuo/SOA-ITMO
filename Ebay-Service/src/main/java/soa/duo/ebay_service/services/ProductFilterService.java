@@ -7,19 +7,31 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.glassfish.jersey.apache.connector.ApacheConnectorProvider;
 import org.glassfish.jersey.client.ClientConfig;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import soa.duo.ebay_service.model.enums.UnitOfMeasure;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.security.KeyStore;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProductFilterService {
 
-    private static final String BASE_URL = "https://localhost:8443/api/v1/products/filter/unit-of-measure/";
+    private static final String BASE_URL = "https://localhost:8443/api/v1/products/";
     private static final String TRUSTSTORE_PATH = "C:/Users/Mikhail/Desktop/Service-Oriented-Architecture/Ebay-Service/src/main/resources/truststore.jks";
     private static final String TRUSTSTORE_PASSWORD = "qwerty";
 
-    public String fetchProductsByUnitOfMeasure(String unitOfMeasure) throws Exception {
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public String fetchAndFilterProductsByUnitOfMeasure(String unitOfMeasure) throws Exception {
+
+        if (!isValidUnitOfMeasure(unitOfMeasure)) {
+            throw new IllegalArgumentException("Invalid unit of measure: " + unitOfMeasure);
+        }
+
         SSLContext sslContext = createSSLContext();
 
         ClientConfig config = new ClientConfig();
@@ -31,15 +43,49 @@ public class ProductFilterService {
                 .build();
 
         String responseContent;
+
         try {
-            WebTarget target = client.target(BASE_URL + unitOfMeasure.toUpperCase());
+            WebTarget target = client.target(BASE_URL);
             Response response = target.request(MediaType.APPLICATION_JSON).get();
             responseContent = response.readEntity(String.class);
+
+            // Print the received JSON response for debugging
+            System.out.println("Received JSON from first service: " + responseContent);
+
+            JsonNode productsRoot = objectMapper.readTree(responseContent);
+            JsonNode products = productsRoot.get("content"); // Access the actual products array within "content"
+
+            if (products == null || !products.isArray()) {
+                throw new IllegalStateException("Invalid JSON format: 'content' field is missing or is not an array");
+            }
+
+            JsonNode filteredProducts = filterProductsByUnitOfMeasure(products, unitOfMeasure);
+
+            return objectMapper.writeValueAsString(filteredProducts);
+
         } finally {
             client.close();
         }
+    }
 
-        return responseContent;
+    private boolean isValidUnitOfMeasure(String unitOfMeasure) {
+        try {
+            UnitOfMeasure.valueOf(unitOfMeasure.toUpperCase());
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    private JsonNode filterProductsByUnitOfMeasure(JsonNode products, String unitOfMeasure) {
+        List<JsonNode> filteredProducts = new ArrayList<>();
+        for (JsonNode product : products) {
+            JsonNode unitNode = product.get("unitOfMeasure");
+            if (unitNode != null && unitNode.asText().equalsIgnoreCase(unitOfMeasure)) {
+                filteredProducts.add(product);
+            }
+        }
+        return objectMapper.valueToTree(filteredProducts);
     }
 
     private SSLContext createSSLContext() throws Exception {
