@@ -6,6 +6,6 @@ public record OrganizationResponse(
         Integer id,
         String name,
         Integer employeesCount,
-        OrganizationType organizationType
+        OrganizationType type
 ) {
 }

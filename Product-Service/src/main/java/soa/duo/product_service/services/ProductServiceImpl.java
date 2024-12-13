@@ -79,15 +79,23 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponse addProduct(ProductInput productInput) {
 
-        if (productInput.partNumber() != null && productRepository.existsByPartNumber(productInput.partNumber())) {
+        String partNumber = (productInput.partNumber() != null && !productInput.partNumber().isEmpty())
+                ? productInput.partNumber()
+                : generateRandomPartNumber();
+
+        if (partNumber != null && !partNumber.isEmpty() &&  productRepository.existsByPartNumber(productInput.partNumber())) {
             throw new DataIntegrityViolationException("Duplicate unique field");
+        }
+
+        if (productInput.coordinates().getY() < 0 | productInput.coordinates().getX() < 0) {
+            throw new DataIntegrityViolationException("Coordinate cannot be negative");
         }
 
         if (productInput.coordinates().getY() > 398) {
             throw new DataIntegrityViolationException("Coordinate Y out of range, must be in range [0, 398]");
         }
 
-        if (productInput.partNumber().length() < 19) {
+        if (partNumber.length() < 19) {
             throw new DataIntegrityViolationException("Part number's length less than 19");
         }
 
@@ -96,7 +104,7 @@ public class ProductServiceImpl implements ProductService {
         product.setCoordinates(productInput.coordinates());
         product.setCreationDate(LocalDateTime.now());
         product.setPrice(productInput.price());
-        product.setPartNumber(productInput.partNumber());
+        product.setPartNumber(partNumber);
         product.setUnitOfMeasure(productInput.unitOfMeasure());
 
         Organization manufacturer = new Organization();
@@ -129,16 +137,24 @@ public class ProductServiceImpl implements ProductService {
 
         Product product = productOpt.get();
 
-        if (productInput.partNumber() != null && !productInput.partNumber().equals(product.getPartNumber())) {
-            if (productRepository.existsByPartNumber(productInput.partNumber())) {
+        String partNumber = (productInput.partNumber() != null && !productInput.partNumber().isEmpty())
+                ? productInput.partNumber()
+                : generateRandomPartNumber();
+
+        if (!partNumber.equals(product.getPartNumber())) {
+            if (productRepository.existsByPartNumber(partNumber)) {
                 throw new DataIntegrityViolationException("Duplicate unique field");
             }
+        }
+
+        if (partNumber.length() < 19) {
+            throw new DataIntegrityViolationException("Part number's length less than 19");
         }
 
         product.setName(productInput.name());
         product.setCoordinates(productInput.coordinates());
         product.setPrice(productInput.price());
-        product.setPartNumber(productInput.partNumber());
+        product.setPartNumber(partNumber);
         product.setUnitOfMeasure(productInput.unitOfMeasure());
 
         Organization manufacturer = product.getManufacturer();
@@ -238,6 +254,17 @@ public class ProductServiceImpl implements ProductService {
                 organization.getEmployeesCount(),
                 organization.getType()
         );
+    }
+
+    private String generateRandomPartNumber() {
+        Random random = new Random();
+        StringBuilder partNumber = new StringBuilder();
+
+        for (int i = 0; i < 20; i++) {
+            partNumber.append(random.nextInt(10));
+        }
+
+        return partNumber.toString();
     }
 
 }

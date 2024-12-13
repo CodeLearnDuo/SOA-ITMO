@@ -20,8 +20,8 @@ import java.util.List;
 
 public class ProductFilterService {
 
-    private static final String BASE_URL = "https://localhost:8443/api/v1/products/";
-    private static final String TRUSTSTORE_PATH = "C:/Users/Mikhail/Desktop/Service-Oriented-Architecture/Ebay-Service/src/main/resources/truststore.jks";
+    private static final String BASE_URL = "https://localhost:25543/api/v1/products/";
+    private static final String TRUSTSTORE_PATH = "/home/studs/s335156/payara/truststore.jks";
     private static final String TRUSTSTORE_PASSWORD = "qwerty";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -49,11 +49,10 @@ public class ProductFilterService {
             Response response = target.request(MediaType.APPLICATION_JSON).get();
             responseContent = response.readEntity(String.class);
 
-            // Print the received JSON response for debugging
             System.out.println("Received JSON from first service: " + responseContent);
 
             JsonNode productsRoot = objectMapper.readTree(responseContent);
-            JsonNode products = productsRoot.get("content"); // Access the actual products array within "content"
+            JsonNode products = productsRoot.get("content");
 
             if (products == null || !products.isArray()) {
                 throw new IllegalStateException("Invalid JSON format: 'content' field is missing or is not an array");

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -24,8 +26,8 @@ import java.security.KeyStore;
 
 public class PriceUpdateService {
 
-    private static final String BASE_URL = "https://localhost:8443/api/v1/products";
-    private static final String TRUSTSTORE_PATH = "C:/Users/Mikhail/Desktop/Service-Oriented-Architecture/Ebay-Service/src/main/resources/truststore.jks";
+    private static final String BASE_URL = "https://localhost:25543/api/v1/products";
+    private static final String TRUSTSTORE_PATH = "/home/studs/s335156/payara/truststore.jks";
     private static final String TRUSTSTORE_PASSWORD = "qwerty";
 
     private final ObjectMapper objectMapper = new ObjectMapper()
@@ -33,10 +35,7 @@ public class PriceUpdateService {
 
 
     public String updateAllProductPrices(double percent) throws Exception {
-        SSLContext sslContext = createSSLContext();
-        CloseableHttpClient httpClient = HttpClients.custom()
-                .setSSLContext(sslContext)
-                .build();
+        CloseableHttpClient httpClient = createHttpClientWithNoHostVerification();
 
         List<Product> productList = getAllProducts();
         List<String> failedUpdates = new ArrayList<>();
@@ -78,10 +77,7 @@ public class PriceUpdateService {
 
 
     private List<Product> getAllProducts() throws Exception {
-        SSLContext sslContext = createSSLContext();
-        CloseableHttpClient httpClient = HttpClients.custom()
-                .setSSLContext(sslContext)
-                .build();
+        CloseableHttpClient httpClient = createHttpClientWithNoHostVerification();
 
         HttpGet request = new HttpGet(BASE_URL + "/");
         List<Product> productList = new ArrayList<>();
@@ -126,6 +122,20 @@ public class PriceUpdateService {
 
         return sslContext;
     }
+
+    private CloseableHttpClient createHttpClientWithNoHostVerification() throws Exception {
+        SSLContext sslContext = createSSLContext();
+
+        SSLConnectionSocketFactory socketFactory = new SSLConnectionSocketFactory(
+                sslContext,
+                NoopHostnameVerifier.INSTANCE
+        );
+
+        return HttpClients.custom()
+                .setSSLSocketFactory(socketFactory)
+                .build();
+    }
+
 
 
 }
