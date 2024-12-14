@@ -79,11 +79,13 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponse addProduct(ProductInput productInput) {
 
-        String partNumber = (productInput.partNumber() != null && !productInput.partNumber().isEmpty())
-                ? productInput.partNumber()
-                : generateRandomPartNumber();
+        Double price = productInput.price() == null ? 0.1 : productInput.price();
 
-        if (partNumber != null && !partNumber.isEmpty() &&  productRepository.existsByPartNumber(productInput.partNumber())) {
+        if (price <= 0) {
+            throw new IllegalArgumentException("Price must be greater than 0.");
+        }
+
+        if (productInput.partNumber() != null && !productInput.partNumber().isEmpty() &&  productRepository.existsByPartNumber(productInput.partNumber())) {
             throw new DataIntegrityViolationException("Duplicate unique field");
         }
 
@@ -95,16 +97,12 @@ public class ProductServiceImpl implements ProductService {
             throw new DataIntegrityViolationException("Coordinate Y out of range, must be in range [0, 398]");
         }
 
-        if (partNumber.length() < 19) {
-            throw new DataIntegrityViolationException("Part number's length less than 19");
-        }
-
         Product product = new Product();
         product.setName(productInput.name());
         product.setCoordinates(productInput.coordinates());
         product.setCreationDate(LocalDateTime.now());
         product.setPrice(productInput.price());
-        product.setPartNumber(partNumber);
+        product.setPartNumber(productInput.partNumber());
         product.setUnitOfMeasure(productInput.unitOfMeasure());
 
         Organization manufacturer = new Organization();
@@ -137,24 +135,16 @@ public class ProductServiceImpl implements ProductService {
 
         Product product = productOpt.get();
 
-        String partNumber = (productInput.partNumber() != null && !productInput.partNumber().isEmpty())
-                ? productInput.partNumber()
-                : generateRandomPartNumber();
-
-        if (!partNumber.equals(product.getPartNumber())) {
-            if (productRepository.existsByPartNumber(partNumber)) {
+        if (!productInput.partNumber().equals(product.getPartNumber())) {
+            if (productRepository.existsByPartNumber(productInput.partNumber())) {
                 throw new DataIntegrityViolationException("Duplicate unique field");
             }
-        }
-
-        if (partNumber.length() < 19) {
-            throw new DataIntegrityViolationException("Part number's length less than 19");
         }
 
         product.setName(productInput.name());
         product.setCoordinates(productInput.coordinates());
         product.setPrice(productInput.price());
-        product.setPartNumber(partNumber);
+        product.setPartNumber(productInput.partNumber());
         product.setUnitOfMeasure(productInput.unitOfMeasure());
 
         Organization manufacturer = product.getManufacturer();
@@ -187,7 +177,16 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public Double calculateTotalPrice() {
         Double totalPrice = productRepository.calculateTotalPrice();
-        return totalPrice != null ? totalPrice : 0.0;
+        if (totalPrice == null) {
+            return 0.0;
+        }
+
+        if (totalPrice > Double.MAX_VALUE) {
+            log.error("Total price exceeds a safe threshold. Current value: {}", totalPrice);
+            throw new ArithmeticException("The total price of products exceeds the maximum safe value.");
+        }
+
+        return totalPrice;
     }
 
     @Override

@@ -34,10 +34,10 @@ public class Product {
     private LocalDateTime creationDate;
 
     @DecimalMin(value = "0", inclusive = false)
-    private double price;
+    @Column(nullable = true)
+    private Double price;
 
-    @Size(min = 19)
-    @Column(unique = true)
+    @Column(unique = true, nullable = true)
     private String partNumber;
 
     @NotNull

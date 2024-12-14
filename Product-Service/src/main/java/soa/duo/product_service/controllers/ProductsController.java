@@ -3,9 +3,7 @@ package soa.duo.product_service.controllers;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
@@ -15,7 +13,7 @@ import soa.duo.product_service.dtos.ProductInput;
 import soa.duo.product_service.dtos.ProductResponse;
 import soa.duo.product_service.services.ProductService;
 
-import java.time.LocalDateTime;
+
 import java.util.*;
 
 @Slf4j
@@ -28,187 +26,96 @@ public class ProductsController {
     private final ProductService productService;
 
     @GetMapping("/")
-    public ResponseEntity<?> getProducts(
+    public ResponseEntity<Page<ProductResponse>> getProducts(
             @RequestParam(value = "page", required = false, defaultValue = "1") Integer page,
             @RequestParam(value = "size", required = false, defaultValue = "10") Integer size,
             @RequestParam(value = "sort", required = false, defaultValue = "id") List<String> sort,
             @RequestParam(value = "filter", required = false) List<String> filters) {
 
-        try {
-            Page<ProductResponse> products = productService.getProducts(page, size, sort, filters);
-            return ResponseEntity.ok(products);
-        } catch (IllegalArgumentException e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", e.getMessage());
-            body.put("time", LocalDateTime.now());
-            log.error(body.toString());
-            return ResponseEntity.badRequest().body(body);
-        } catch (Exception e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Internal server error");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+        int maxAllowedPage = 1_000_000;
+        int maxAllowedSize = 10_000;
+
+        if (page < 1) {
+            throw new IllegalArgumentException("Page number must be a positive integer.");
         }
+
+        if (page > maxAllowedPage) {
+            throw new IllegalArgumentException("Page number is too large.");
+        }
+
+        if (size < 1) {
+            throw new IllegalArgumentException("Page size must be a positive integer.");
+        }
+
+        if (size > maxAllowedSize) {
+            throw new IllegalArgumentException("Page size is too large.");
+        }
+
+        Page<ProductResponse> products = productService.getProducts(page, size, sort, filters);
+        return ResponseEntity.ok(products);
     }
 
     @PostMapping("/")
-    public ResponseEntity<?> addProduct(@Valid @RequestBody ProductInput productInput, BindingResult bindingResult) {
+    public ResponseEntity<ProductResponse> addProduct(
+            @Valid @RequestBody ProductInput productInput,
+            BindingResult bindingResult) {
+
         if (bindingResult.hasErrors()) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Validation failed for one or more fields");
-            body.put("time", LocalDateTime.now());
-            body.put("errors", bindingResult.getFieldErrors().stream().map(error -> {
-                Map<String, String> errorMap = new HashMap<>();
-                errorMap.put("field", error.getField());
-                errorMap.put("error", error.getDefaultMessage());
-                return errorMap;
-            }));
-            return ResponseEntity.unprocessableEntity().body(body);
+            throw new IllegalArgumentException("Validation failed for one or more fields");
         }
 
-        try {
-            ProductResponse productResponse = productService.addProduct(productInput);
-            log.info("Product added successfully {}", productResponse.toString());
-            return ResponseEntity.status(HttpStatus.CREATED).body(productResponse);
-        } catch (DataIntegrityViolationException e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", e.getMessage());
-            body.put("time", LocalDateTime.now());
-            log.debug(e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
-        } catch (Exception e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Invalid data in request");
-            body.put("time", LocalDateTime.now());
-
-            log.error("Internal server error", e);
-            return ResponseEntity.badRequest().body(body);
-        }
+        ProductResponse productResponse = productService.addProduct(productInput);
+        log.info("Product added successfully {}", productResponse.toString());
+        return ResponseEntity.status(201).body(productResponse);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getProductById(@PathVariable("id") Integer id) {
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable("id") Integer id) {
         if (id < 1) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Invalid product ID");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.badRequest().body(body);
+            throw new IllegalArgumentException("Invalid product ID");
         }
 
-        try {
-            Optional<ProductResponse> productOpt = productService.getProductById(id);
-            if (productOpt.isPresent()) {
-                return ResponseEntity.ok(productOpt.get());
-            } else {
-                Map<String, Object> body = new HashMap<>();
-                body.put("message", "Product with specified ID not found");
-                body.put("time", LocalDateTime.now());
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
-            }
-        } catch (Exception e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Internal server error");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
-        }
+        Optional<ProductResponse> productOpt = productService.getProductById(id);
+        return ResponseEntity.ok(productOpt.orElseThrow(() -> new NoSuchElementException("Product with specified ID not found")));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<?> updateProduct(
+    public ResponseEntity<ProductResponse> updateProduct(
             @PathVariable("id") Integer id,
             @Valid @RequestBody ProductInput productInput,
             BindingResult bindingResult) {
+
         if (id < 1) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Invalid product ID");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.badRequest().body(body);
+            throw new IllegalArgumentException("Invalid product ID");
         }
 
         if (bindingResult.hasErrors()) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Validation failed for one or more fields");
-            body.put("time", LocalDateTime.now());
-            body.put("errors", bindingResult.getFieldErrors().stream().map(error -> {
-                Map<String, String> errorMap = new HashMap<>();
-                errorMap.put("field", error.getField());
-                errorMap.put("error", error.getDefaultMessage());
-                return errorMap;
-            }));
-            return ResponseEntity.unprocessableEntity().body(body);
+            throw new IllegalArgumentException("Validation failed for one or more fields");
         }
 
-        try {
-            ProductResponse productResponse = productService.updateProduct(id, productInput);
-            return ResponseEntity.ok(productResponse);
-        } catch (NoSuchElementException e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", e.getMessage());
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
-        } catch (DataIntegrityViolationException e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Duplicate unique field");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
-        } catch (Exception e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Invalid data in request");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.badRequest().body(body);
-        }
+        ProductResponse productResponse = productService.updateProduct(id, productInput);
+        return ResponseEntity.ok(productResponse);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable("id") Integer id) {
+    public ResponseEntity<Void> deleteProduct(@PathVariable("id") Integer id) {
         if (id < 1) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Invalid product ID");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.badRequest().body(body);
+            throw new IllegalArgumentException("Invalid product ID");
         }
 
-        try {
-            productService.deleteProduct(id);
-            return ResponseEntity.noContent().build();
-        } catch (NoSuchElementException e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", e.getMessage());
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
-        } catch (Exception e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Internal server error");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
-        }
+        productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/price/sum")
-    public ResponseEntity<?> calculateTotalPrice() {
-        try {
-            Double totalPrice = productService.calculateTotalPrice();
-            Map<String, Object> body = new HashMap<>();
-            body.put("totalPrice", totalPrice);
-            return ResponseEntity.ok(body);
-        } catch (Exception e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Internal server error");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
-        }
+    public ResponseEntity<Double> calculateTotalPrice() {
+        Double totalPrice = productService.calculateTotalPrice();
+        return ResponseEntity.ok(totalPrice);
     }
 
     @GetMapping("/manufacturers")
-    public ResponseEntity<?> getUniqueManufacturers() {
-        try {
-            List<OrganizationResponse> manufacturers = productService.getUniqueManufacturers();
-            return ResponseEntity.ok(manufacturers);
-        } catch (Exception e) {
-            Map<String, Object> body = new HashMap<>();
-            body.put("message", "Internal server error");
-            body.put("time", LocalDateTime.now());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
-        }
+    public ResponseEntity<List<OrganizationResponse>> getUniqueManufacturers() {
+        List<OrganizationResponse> manufacturers = productService.getUniqueManufacturers();
+        return ResponseEntity.ok(manufacturers);
     }
 }
