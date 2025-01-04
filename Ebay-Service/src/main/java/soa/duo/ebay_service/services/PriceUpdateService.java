@@ -4,6 +4,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
@@ -15,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import soa.duo.ebay_service.dtos.OrganizationInput;
 import soa.duo.ebay_service.dtos.ProductInput;
+import soa.duo.ebay_service.exception.ServiceUnavailableException;
 import soa.duo.ebay_service.model.Product;
 
 import java.util.*;
@@ -60,9 +62,17 @@ public class PriceUpdateService {
             patchRequest.setEntity(new StringEntity(objectMapper.writeValueAsString(productInput), ContentType.APPLICATION_JSON));
 
             try (CloseableHttpResponse response = httpClient.execute(patchRequest)) {
-                if (response.getStatusLine().getStatusCode() != 200) {
+                int statusCode = response.getStatusLine().getStatusCode();
+
+                if (statusCode == 503) {
+                    throw new ServiceUnavailableException("Product service is currently unavailable.");
+                }
+
+                if (statusCode != 200) {
                     failedUpdates.add(String.valueOf(product.getId()));
                 }
+            } catch (HttpHostConnectException e) {
+                throw new ServiceUnavailableException("Product service is currently unavailable.");
             }
         }
 
@@ -83,9 +93,14 @@ public class PriceUpdateService {
         List<Product> productList = new ArrayList<>();
 
         try (CloseableHttpResponse response = httpClient.execute(request)) {
-            if (response.getStatusLine().getStatusCode() == 200) {
-                String responseBody = EntityUtils.toString(response.getEntity());
+            int statusCode = response.getStatusLine().getStatusCode();
 
+            if (statusCode == 503) {
+                throw new ServiceUnavailableException("Product service is currently unavailable.");
+            }
+
+            if (statusCode == 200) {
+                String responseBody = EntityUtils.toString(response.getEntity());
                 System.out.println("Received JSON from first service: " + responseBody);
 
                 JsonNode rootNode = objectMapper.readTree(responseBody);
@@ -100,8 +115,10 @@ public class PriceUpdateService {
                     System.err.println("Invalid JSON structure: 'content' is missing or not an array");
                 }
             } else {
-                System.err.println("Failed to retrieve products, status: " + response.getStatusLine().getStatusCode());
+                System.err.println("Failed to retrieve products, status: " + statusCode);
             }
+        } catch (HttpHostConnectException e) {
+            throw new ServiceUnavailableException("Product service is currently unavailable.");
         }
 
         return productList;

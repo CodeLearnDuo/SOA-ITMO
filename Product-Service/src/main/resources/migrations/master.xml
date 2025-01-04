@@ -8,8 +8,4 @@
 
     <include file="migrations/tables/001_organizations_table.sql"/>
     <include file="migrations/tables/002_products_table.sql"/>
-    <include file="migrations/tables/003_update_organizations_name_type.sql"/>
-    <include file="migrations/tables/004_update_products_name_and_part_number_types.sql"/>
-    <include file="migrations/tables/005_update_part_number.sql"/>
-    <include file="migrations/tables/006_update_not_null_values.sql"/>
 </databaseChangeLog>

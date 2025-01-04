@@ -24,8 +24,4 @@ public interface ProductService {
 
     List<OrganizationResponse> getUniqueManufacturers();
 
-    void increasePricesForAllProducts(double percent);
-
-    List<ProductResponse> getProductsByUnitOfMeasure(String unitOfMeasure);
-
 }

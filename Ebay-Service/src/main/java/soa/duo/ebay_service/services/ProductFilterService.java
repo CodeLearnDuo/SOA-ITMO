@@ -1,14 +1,17 @@
 package soa.duo.ebay_service.services;
 
+import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.apache.http.conn.HttpHostConnectException;
 import org.glassfish.jersey.apache.connector.ApacheConnectorProvider;
 import org.glassfish.jersey.client.ClientConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import soa.duo.ebay_service.exception.ServiceUnavailableException;
 import soa.duo.ebay_service.model.enums.UnitOfMeasure;
 
 import javax.net.ssl.SSLContext;
@@ -47,6 +50,15 @@ public class ProductFilterService {
         try {
             WebTarget target = client.target(BASE_URL);
             Response response = target.request(MediaType.APPLICATION_JSON).get();
+
+            if (response.getStatus() == 503) {
+                throw new ServiceUnavailableException("External service unavailable");
+            }
+
+            if (response.getStatus() != 200) {
+                throw new RuntimeException("Failed to fetch products, status: " + response.getStatus());
+            }
+
             responseContent = response.readEntity(String.class);
 
             System.out.println("Received JSON from first service: " + responseContent);
@@ -62,6 +74,8 @@ public class ProductFilterService {
 
             return objectMapper.writeValueAsString(filteredProducts);
 
+        } catch (ProcessingException e) {
+            throw new ServiceUnavailableException("Product service is currently unavailable.");
         } finally {
             client.close();
         }

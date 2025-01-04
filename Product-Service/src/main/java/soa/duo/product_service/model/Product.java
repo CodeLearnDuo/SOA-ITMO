@@ -1,5 +1,6 @@
 package soa.duo.product_service.model;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
@@ -33,7 +34,8 @@ public class Product {
     @Column(nullable = false)
     private LocalDateTime creationDate;
 
-    @DecimalMin(value = "0", inclusive = false)
+    @Nullable
+    @DecimalMin(value = "0", inclusive = false, message = "Price must be greater than 0.")
     @Column(nullable = true)
     private Double price;
 

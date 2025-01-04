@@ -79,13 +79,16 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductResponse addProduct(ProductInput productInput) {
 
-        Double price = productInput.price() == null ? 0.1 : productInput.price();
-
-        if (price <= 0) {
-            throw new IllegalArgumentException("Price must be greater than 0.");
+        if (productInput.price() != null && productInput.price() <= 0) {
+            throw new IllegalArgumentException("Price must be greater than 0 if specified.");
         }
 
-        if (productInput.partNumber() != null && !productInput.partNumber().isEmpty() &&  productRepository.existsByPartNumber(productInput.partNumber())) {
+        String partNumber = productInput.partNumber();
+        if (partNumber != null && partNumber.trim().isEmpty()) {
+            partNumber = null;
+        }
+
+        if (partNumber != null &&  productRepository.existsByPartNumber(partNumber)) {
             throw new DataIntegrityViolationException("Duplicate unique field");
         }
 
@@ -102,7 +105,7 @@ public class ProductServiceImpl implements ProductService {
         product.setCoordinates(productInput.coordinates());
         product.setCreationDate(LocalDateTime.now());
         product.setPrice(productInput.price());
-        product.setPartNumber(productInput.partNumber());
+        product.setPartNumber(partNumber);
         product.setUnitOfMeasure(productInput.unitOfMeasure());
 
         Organization manufacturer = new Organization();
@@ -135,8 +138,13 @@ public class ProductServiceImpl implements ProductService {
 
         Product product = productOpt.get();
 
-        if (!productInput.partNumber().equals(product.getPartNumber())) {
-            if (productRepository.existsByPartNumber(productInput.partNumber())) {
+        String partNumber = productInput.partNumber();
+        if (partNumber != null && partNumber.trim().isEmpty()) {
+            partNumber = null;
+        }
+
+        if (partNumber != null && !partNumber.equals(product.getPartNumber())) {
+            if (productRepository.existsByPartNumber(partNumber)) {
                 throw new DataIntegrityViolationException("Duplicate unique field");
             }
         }
@@ -144,7 +152,7 @@ public class ProductServiceImpl implements ProductService {
         product.setName(productInput.name());
         product.setCoordinates(productInput.coordinates());
         product.setPrice(productInput.price());
-        product.setPartNumber(productInput.partNumber());
+        product.setPartNumber(partNumber);
         product.setUnitOfMeasure(productInput.unitOfMeasure());
 
         Organization manufacturer = product.getManufacturer();
@@ -198,30 +206,6 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public void increasePricesForAllProducts(double percent) {
-        if (percent <= 0) {
-            throw new IllegalArgumentException("The increase percentage must be greater than 0");
-        }
-        productRepository.increasePricesForAllProducts(percent);
-        productRepository.flush();
-        log.info("Increasing prices by {}%", percent);
-    }
-
-    @Override
-    public List<ProductResponse> getProductsByUnitOfMeasure(String unitOfMeasure) {
-        if (unitOfMeasure == null || unitOfMeasure.isEmpty()) {
-            throw new IllegalArgumentException("Invalid unit of measure parameter");
-        }
-        List<Product> products = productRepository.findByUnitOfMeasure(UnitOfMeasure.valueOf(unitOfMeasure));
-        return products.stream().map(this::mapToProductResponse).collect(Collectors.toList());
-    }
-
-
-
-
-
-
     private ProductResponse mapToProductResponse(Product product) {
         OrganizationResponse organizationResponse = null;
         if (product.getManufacturer() != null) {
@@ -254,16 +238,4 @@ public class ProductServiceImpl implements ProductService {
                 organization.getType()
         );
     }
-
-    private String generateRandomPartNumber() {
-        Random random = new Random();
-        StringBuilder partNumber = new StringBuilder();
-
-        for (int i = 0; i < 20; i++) {
-            partNumber.append(random.nextInt(10));
-        }
-
-        return partNumber.toString();
-    }
-
 }

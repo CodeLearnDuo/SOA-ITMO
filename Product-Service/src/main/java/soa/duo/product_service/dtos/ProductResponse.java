@@ -10,7 +10,7 @@ public record ProductResponse(
         String name,
         Coordinates coordinates,
         LocalDateTime creationDate,
-        double price,
+        Double price,
         String partNumber,
         UnitOfMeasure unitOfMeasure,
         OrganizationResponse manufacturer

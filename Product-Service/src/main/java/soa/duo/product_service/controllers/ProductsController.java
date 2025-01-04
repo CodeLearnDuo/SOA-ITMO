@@ -108,9 +108,11 @@ public class ProductsController {
     }
 
     @GetMapping("/price/sum")
-    public ResponseEntity<Double> calculateTotalPrice() {
+    public ResponseEntity<?> calculateTotalPrice() {
         Double totalPrice = productService.calculateTotalPrice();
-        return ResponseEntity.ok(totalPrice);
+        Map<String, Object> body = new HashMap<>();
+        body.put("totalPrice", totalPrice);
+        return ResponseEntity.ok(body);
     }
 
     @GetMapping("/manufacturers")
