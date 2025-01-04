@@ -683,7 +683,7 @@ components:
         type:
           $ref: '#/components/schemas/OrganizationType'
           description: Type of the organization
-          nullable: true
+          nullable: false
       required:
         - id
         - name
@@ -703,7 +703,7 @@ components:
         type:
           $ref: '#/components/schemas/OrganizationType'
           description: Type of the organization
-          nullable: true
+          nullable: false
       required:
         - name
     UnitOfMeasure:
