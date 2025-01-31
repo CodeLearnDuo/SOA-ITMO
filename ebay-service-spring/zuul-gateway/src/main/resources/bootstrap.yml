@@ -1,0 +1,55 @@
+server:
+  port: 25644
+  ssl:
+    key-store: file:/home/studs/s335156/payara/truststore.jks # Абсолютный путь к вашему truststore
+    key-store-password: qwerty # Пароль к truststore
+    key-alias: wildflycert # Укажите alias ключа
+    key-store-type: JKS
+
+spring:
+  application:
+    name: zuul
+  sleuth:
+    sampler:
+      probability: 1
+  zipkin:
+    sender:
+      type: web
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    registerWithEureka: true
+    fetchRegistry: true
+    serviceUrl:
+      defaultZone: http://localhost:25645/eureka/
+
+# Disable Hystrix timeout globally (for all services)
+#hystrix.command.default.execution.timeout.enabled: false
+hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds: 60000
+#hystrix.command.service-a.execution.timeout.enabled: false
+
+# Disable Hystrix timeout for a single service
+#hystrix.command.<serviceName>.execution.timeout.enabled: false
+
+# Increase the Hystrix timeout to 60s (globally)
+#hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds: 60000
+
+# Increase the Hystrix timeout to 60s (per service)
+#hystrix.command.<serviceName>.execution.isolation.thread.timeoutInMilliseconds: 60000
+
+zuul:
+  routes:
+    ebay-service:
+      path: /**
+      serviceId: ebay-service
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    shutdown:
+      enabled: true
+    health:
+      show-details: ALWAYS
