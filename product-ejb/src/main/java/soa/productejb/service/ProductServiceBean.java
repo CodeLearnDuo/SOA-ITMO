@@ -14,6 +14,7 @@ import soa.productejb.dtos.ProductResponse;
 import soa.productejb.entities.Organization;
 import soa.productejb.entities.Product;
 import soa.productejb.enums.UnitOfMeasure;
+import soa.productejb.exceptions.InvalidParameterException;
 import soa.productejb.util.PageData;
 import soa.productejb.util.ProductSpecificationBuilder;
 import soa.productejb.util.Specification;
@@ -50,6 +51,13 @@ public class ProductServiceBean implements ProductServiceRemote {
         }
         if (size > 10_000) {
             throw new IllegalArgumentException("Page size is too large.");
+        }
+        if (sort != null) {
+            for (String sortField : sort) {
+                if (!ProductSpecificationBuilder.isValidSortField(sortField.replace("-", ""))) {
+                    throw new InvalidParameterException("Invalid sort field: '" + sortField + "'");
+                }
+            }
         }
 
         // 1) Собираем CriteriaQuery на основе Specification (фильтров)
@@ -108,7 +116,6 @@ public class ProductServiceBean implements ProductServiceRemote {
             throw new IllegalArgumentException("Price must be greater than 0 if specified.");
         }
 
-        // partNumber: проверка уникальности
         String partNumber = productInput.getPartNumber();
         if (partNumber != null && partNumber.trim().isEmpty()) {
             partNumber = null;
@@ -150,12 +157,12 @@ public class ProductServiceBean implements ProductServiceRemote {
      * Аналог Spring getProductById
      */
     @Override
-    public Optional<ProductResponse> getProductById(Integer id) {
+    public ProductResponse getProductById(Integer id) {
         Product product = em.find(Product.class, id);
         if (product == null) {
-            return Optional.empty();
+            throw new NoSuchElementException("Product with specified ID not found");
         }
-        return Optional.of(mapToProductResponse(product));
+        return (mapToProductResponse(product));
     }
 
     /**
@@ -242,43 +249,6 @@ public class ProductServiceBean implements ProductServiceRemote {
 
         return orgs.stream()
                 .map(this::mapToOrganizationResponse)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Аналог Spring increasePricesForAllProducts
-     */
-    @Override
-    @Transactional
-    public void increasePricesForAllProducts(double percent) {
-        if (percent <= 0) {
-            throw new IllegalArgumentException("The increase percentage must be greater than 0");
-        }
-        em.createQuery("UPDATE Product p SET p.price = p.price * (1 + :percent / 100.0)")
-                .setParameter("percent", percent)
-                .executeUpdate();
-        em.flush();
-        log.info("Increasing prices by {}%", percent);
-    }
-
-    /**
-     * Аналог Spring getProductsByUnitOfMeasure
-     */
-    @Override
-    public List<ProductResponse> getProductsByUnitOfMeasure(String unitOfMeasure) {
-        if (unitOfMeasure == null || unitOfMeasure.isEmpty()) {
-            throw new IllegalArgumentException("Invalid unit of measure parameter");
-        }
-        UnitOfMeasure uom = UnitOfMeasure.valueOf(unitOfMeasure.toUpperCase());
-        TypedQuery<Product> query = em.createQuery(
-                "SELECT p FROM Product p WHERE p.unitOfMeasure = :uom", Product.class);
-        query.setParameter("uom", uom);
-        List<Product> products = query.getResultList();
-        if (products.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return products.stream()
-                .map(this::mapToProductResponse)
                 .collect(Collectors.toList());
     }
 

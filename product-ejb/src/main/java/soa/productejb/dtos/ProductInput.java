@@ -4,8 +4,12 @@ import lombok.Data;
 import soa.productejb.entities.Coordinates;
 import soa.productejb.enums.UnitOfMeasure;
 
+import java.io.Serializable;
+
 @Data
-public class ProductInput {
+public class ProductInput implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private String name;
     private Coordinates coordinates;

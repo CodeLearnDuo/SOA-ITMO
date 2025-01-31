@@ -9,12 +9,15 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import soa.productejb.enums.UnitOfMeasure;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
 @Entity
 @Table(name = "products")
-public class Product {
+public class Product implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

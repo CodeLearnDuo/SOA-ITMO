@@ -20,7 +20,7 @@ public interface ProductServiceRemote {
 
     ProductResponse addProduct(ProductInput productInput);
 
-    Optional<ProductResponse> getProductById(Integer id);
+    ProductResponse getProductById(Integer id);
 
     ProductResponse updateProduct(Integer id, ProductInput productInput);
 
@@ -29,8 +29,4 @@ public interface ProductServiceRemote {
     Double calculateTotalPrice();
 
     List<OrganizationResponse> getUniqueManufacturers();
-
-    void increasePricesForAllProducts(double percent);
-
-    List<ProductResponse> getProductsByUnitOfMeasure(String unitOfMeasure);
 }

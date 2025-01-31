@@ -1,8 +1,11 @@
 package soa.productejb.util;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class PageData<T> {
+public class PageData<T>  implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private List<T> content;
     private int pageNumber;
     private int pageSize;
