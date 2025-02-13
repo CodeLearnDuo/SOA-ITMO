@@ -61,7 +61,7 @@ public class ProductController {
      * @throws InternalServiceException  - For unexpected errors (500).
      */
     @PatchMapping("/price/increase/{increasePercent}")
-    public ResponseEntity<Void> increasePrice(@PathVariable("increasePercent") double increasePercent) {
+    public ResponseEntity<Void> increasePrice(@PathVariable("increasePercent") Double increasePercent) {
         try {
             productService.updateAllProductPrices(increasePercent);
 

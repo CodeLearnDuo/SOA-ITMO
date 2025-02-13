@@ -1,5 +1,5 @@
 server:
-  port: 25648
+  port: 25649
 
 spring:
   application:
@@ -42,3 +42,9 @@ eureka:
     serviceUrl:
       defaultZone: http://localhost:25645/eureka/
 
+logging:
+  level:
+    root: INFO
+    your.package.controller: DEBUG
+    your.package.service: DEBUG
+    org.springframework: INFO

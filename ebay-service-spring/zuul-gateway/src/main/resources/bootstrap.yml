@@ -49,7 +49,23 @@ management:
       exposure:
         include: "*"
   endpoint:
+    trace:
+      enabled: true
     shutdown:
       enabled: true
     health:
       show-details: ALWAYS
+
+ebay-service:
+  ribbon:
+    NFLoadBalancerRuleClassName: com.netflix.loadbalancer.RoundRobinRule
+
+
+logging:
+  level:
+    org.springframework.cloud.netflix.zuul: DEBUG
+    org.springframework.cloud.netflix.zuul.filters: DEBUG
+    org.springframework.boot.actuate.trace.http.HttpTraceRepository: DEBUG
+    org.springframework.web.servlet.DispatcherServlet: DEBUG
+    org.springframework.web.client.RestTemplate: DEBUG
+    org.apache.http: DEBUG

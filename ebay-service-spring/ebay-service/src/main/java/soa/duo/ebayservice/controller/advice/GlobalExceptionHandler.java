@@ -1,5 +1,8 @@
 package soa.duo.ebayservice.controller.advice;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import soa.duo.ebayservice.model.dto.ErrorDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +13,9 @@ import java.time.LocalDateTime;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
 
     /**
      * Ошибки валидации @Valid/@RequestBody/etc.
@@ -37,6 +43,44 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 LocalDateTime.now()
         );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(InvalidInputException.class)
+    public ResponseEntity<ErrorDto> handleInvalidInputException(InvalidInputException ex) {
+        ErrorDto error = new ErrorDto(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(NumberFormatException.class)
+    public ResponseEntity<ErrorDto> handleNumberFormatException(NumberFormatException ex) {
+        ErrorDto error = new ErrorDto(
+                HttpStatus.BAD_REQUEST.value(),
+                "Invalid number format: " + ex.getMessage(),
+                LocalDateTime.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorDto> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String parameterName = ex.getName();
+        Object invalidValue = ex.getValue();
+        String expectedType = (ex.getRequiredType() != null) ? ex.getRequiredType().getSimpleName() : "unknown type";
+
+        String errorMessage = String.format("Invalid value '%s' for parameter '%s'. Expected type: %s.",
+                invalidValue, parameterName, expectedType);
+
+        ErrorDto error = new ErrorDto(
+                HttpStatus.BAD_REQUEST.value(),
+                errorMessage,
+                LocalDateTime.now()
+        );
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
@@ -72,6 +116,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorDto> handleAll(Exception ex) {
+        LOGGER.error("Unhandled exception caught: ", ex);
+
         ErrorDto error = new ErrorDto(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal server error",
