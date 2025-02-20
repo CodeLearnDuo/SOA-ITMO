@@ -1,29 +1,19 @@
 package blps.duo.model;
 
-import java.util.List;
-
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
-import jakarta.xml.bind.annotation.XmlType;
+import java.util.List;
 
-@XmlRootElement(name = "ProductList") // <--- Должно быть обязательно!
-@XmlType(name = "ProductList", namespace = "http://www.example.com/ebay")
+@XmlRootElement(name = "ProductList", namespace = "http://www.example.com/ebay")
 public class ProductList {
-    private List<Product> product;
+    private List<Product> products;
 
-    public ProductList() {
+    @XmlElement(name = "product", namespace = "http://www.example.com/ebay")
+    public List<Product> getProducts() {
+        return products;
     }
 
-    public ProductList(List<Product> product) {
-        this.product = product;
-    }
-
-    @XmlElement(name = "product") // <--- JAXB теперь сможет правильно сериализовать список!
-    public List<Product> getProduct() {
-        return product;
-    }
-
-    public void setProduct(List<Product> product) {
-        this.product = product;
+    public void setProducts(List<Product> products) {
+        this.products = products;
     }
 }

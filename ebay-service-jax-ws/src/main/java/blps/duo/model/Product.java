@@ -105,4 +105,18 @@ public class Product {
     public void setManufacturer(Organization manufacturer) {
         this.manufacturer = manufacturer;
     }
+
+    @Override
+    public String toString() {
+        return "Product{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", coordinates=" + coordinates +
+                ", creationDate=" + creationDate +
+                ", price=" + price +
+                ", partNumber='" + partNumber + '\'' +
+                ", unitOfMeasure=" + unitOfMeasure +
+                ", manufacturer=" + manufacturer +
+                '}';
+    }
 }

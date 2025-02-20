@@ -16,7 +16,7 @@ public class GetProductsByUnitOfMeasureResponse {
         this.products = products;
     }
 
-    @XmlElement(name = "products") // Теперь JAXB корректно обработает `ProductList`
+    @XmlElement(name = "products", namespace = "http://www.example.com/ebay")
     public ProductList getProducts() {
         return products;
     }

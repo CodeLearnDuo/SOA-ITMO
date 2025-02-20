@@ -1,18 +1,20 @@
 package blps.duo.service;
 
-import blps.duo.model.GetProductsByUnitOfMeasureRequest;
-import blps.duo.model.IncreasePricesRequest;
-import blps.duo.model.Product;
-import blps.duo.model.ProductList;
+import blps.duo.model.*;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.jws.WebService;
+import jakarta.xml.bind.annotation.XmlSeeAlso;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import jakarta.jws.WebService;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @WebService(
@@ -21,16 +23,20 @@ import java.util.List;
         targetNamespace = "http://www.example.com/ebay",
         endpointInterface = "blps.duo.service.EbayService"
 )
+@XmlSeeAlso({blps.duo.model.ProductList.class, blps.duo.model.Product.class,
+        blps.duo.model.Coordinates.class, blps.duo.model.Organization.class,
+        blps.duo.model.UnitOfMeasure.class, blps.duo.model.OrganizationType.class,
+        IncreasePricesResponse.class, IncreasePricesRequest.class})
 public class EbayServiceImpl implements EbayService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EbayServiceImpl.class);
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String MULE_GET_URL = "http://localhost:25645/api/v1/muleadapter/products";
-    private static final String MULE_PATCH_BASE_URL = "http://localhost:25645/api/v1/muleadapter/product/";
+    private static final String MULE_POST_BASE_URL = "http://localhost:25645/api/v1/muleadapter/product/";
 
     @Override
-    public Object getProductsByUnitOfMeasure(GetProductsByUnitOfMeasureRequest request) {
+    public ProductList getProductsByUnitOfMeasure(GetProductsByUnitOfMeasureRequest request) {
         System.out.println("DEBUG: In getProductsByUnitOfMeasure");
         try {
             String unit = request.getUnitOfMeasure().toString();
@@ -62,9 +68,12 @@ public class EbayServiceImpl implements EbayService {
             conn.disconnect();
 
             LOGGER.debug("Mule GET integration raw response: {}", responseContent);
-            List<Product> listOfProducts = objectMapper.readValue(responseContent.toString(), new TypeReference<List<Product>>() {});
+            JsonNode rootNode = objectMapper.readTree(responseContent.toString());
+            JsonNode contentNode = rootNode.get("content");
+            List<Product> listOfProducts = objectMapper.readValue(contentNode.toString(), new TypeReference<List<Product>>() {
+            });
             ProductList productList = new ProductList();
-            productList.setProduct(listOfProducts);
+            productList.setProducts(listOfProducts);
 
             LOGGER.info("Returning response with {} products", listOfProducts.size());
             return productList;  // Возвращаемый объект будет обёрнут JAX-WS
@@ -75,7 +84,7 @@ public class EbayServiceImpl implements EbayService {
     }
 
     @Override
-    public Object increasePrices(IncreasePricesRequest request) {
+    public IncreasePricesResponse increasePrices(IncreasePricesRequest request) {
         System.out.println("DEBUG: In increasePrices");
         try {
             double percent = request.getIncreasePercent();
@@ -85,6 +94,7 @@ public class EbayServiceImpl implements EbayService {
             }
             LOGGER.info("Starting price increase process with percent: {}", percent);
 
+            // Выполняем GET-запрос к интеграционному потоку Mule для получения списка продуктов
             URL url = new URL(MULE_GET_URL);
             HttpURLConnection getConn = (HttpURLConnection) url.openConnection();
             getConn.setRequestMethod("GET");
@@ -93,6 +103,7 @@ public class EbayServiceImpl implements EbayService {
             int getCode = getConn.getResponseCode();
             LOGGER.info("GET integration response code for fetching products: {}", getCode);
             if (getCode != HttpURLConnection.HTTP_OK) {
+                LOGGER.error("Error calling Mule GET (all) integration flow, response code: {}", getCode);
                 throw new RuntimeException("Error fetching products, response code: " + getCode);
             }
 
@@ -105,36 +116,53 @@ public class EbayServiceImpl implements EbayService {
             }
             getConn.disconnect();
 
-            List<Product> listOfProducts = objectMapper.readValue(responseContent.toString(), new TypeReference<List<Product>>() {});
+            LOGGER.debug("GET integration raw response: {}", responseContent);
+
+            JsonNode rootNode = objectMapper.readTree(responseContent.toString());
+            JsonNode contentNode = rootNode.get("content");
+            List<Product> listOfProducts = objectMapper.readValue(contentNode.toString(), new TypeReference<List<Product>>() {
+            });
             LOGGER.info("Fetched {} products for price update", listOfProducts.size());
 
+            // Для каждого продукта вызываем Mule POST-интеграционный поток для обновления цены.
+            // Важно: здесь мы вызываем Mule через POST, а Mule flow внутри вызывает PATCH к Product API.
             for (Product product : listOfProducts) {
-                String patchUrl = MULE_PATCH_BASE_URL + product.getId() + "?increasePercent=" + percent;
-                LOGGER.info("Calling Mule PATCH integration flow for product id {} at: {}", product.getId(), patchUrl);
-                URL patchURL = new URL(patchUrl);
-                HttpURLConnection patchConn = (HttpURLConnection) patchURL.openConnection();
-                patchConn.setRequestMethod("PATCH");
-                patchConn.setRequestProperty("Content-Type", "application/json");
-                patchConn.setDoOutput(false);
-
-                int patchCode = patchConn.getResponseCode();
-                LOGGER.info("Mule PATCH integration response code for product {}: {}", product.getId(), patchCode);
-                if (patchCode != HttpURLConnection.HTTP_NO_CONTENT) {
-                    StringBuilder errorResponse = new StringBuilder();
-                    try (BufferedReader errorIn = new BufferedReader(new InputStreamReader(patchConn.getErrorStream()))) {
-                        String line;
-                        while ((line = errorIn.readLine()) != null) {
-                            errorResponse.append(line);
-                        }
+// Для каждого продукта вызываем Mule POST-интеграционный поток для обновления цены.
+                LOGGER.info("Start updating price for product: {}", product);
+                Double oldPrice = product.getPrice();
+                if (oldPrice == null) {
+                    LOGGER.info("Skipping product with id {} since price is null.", product.getId());
+                    continue;
                     }
-                    throw new RuntimeException("Error updating product id " + product.getId() + ", response code: " + patchCode
-                            + ", error: " + errorResponse);
-                }
-                patchConn.disconnect();
-            }
+                double newPrice = oldPrice * (1 + percent / 100);
+                LOGGER.info("Product id {} old price: {} => new price: {}", product.getId(), oldPrice, newPrice);
 
+                product.setPrice(newPrice);
+                // Вызываем Mule POST-интеграционный поток для обновления цены
+                URL postUrl = new URL(MULE_POST_BASE_URL + product.getId());
+                HttpURLConnection postConn = (HttpURLConnection) postUrl.openConnection();
+                postConn.setRequestMethod("POST");
+                postConn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+                postConn.setDoOutput(true);
+                String jsonPayload = objectMapper.writeValueAsString(product);
+                LOGGER.info("POST payload for product id {}: {}", product.getId(), jsonPayload);
+
+                try (OutputStream os = postConn.getOutputStream()) {
+                    byte[] input = jsonPayload.getBytes(StandardCharsets.UTF_8);
+                    os.write(input, 0, input.length);
+                }
+
+                int postCode = postConn.getResponseCode();
+                if (postCode != HttpURLConnection.HTTP_OK && postCode != HttpURLConnection.HTTP_CREATED) {
+                    LOGGER.error("Failed to update product with id {} via POST, response code: {}", product.getId(), postCode);
+                    throw new RuntimeException("Failed to update product with id " + product.getId() + ", response code: " + postCode);
+                } else {
+                    LOGGER.info("Successfully updated product with id {} via POST, response code: {}", product.getId(), postCode);
+                }
+                postConn.disconnect();
+            }
             LOGGER.info("Price increase process completed successfully.");
-            return new Object(); // Возвращаем пустой объект, так как JAX-WS создаст `IncreasePricesResponse`
+            return new IncreasePricesResponse();
         } catch (Exception e) {
             LOGGER.error("Exception in increasePrices: ", e);
             throw new RuntimeException("Exception in increasePrices: " + e.getMessage(), e);
