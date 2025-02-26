@@ -1,4 +1,4 @@
-package blps.duo.model;
+package blps.duo.adapter;
 
 import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 import java.text.SimpleDateFormat;

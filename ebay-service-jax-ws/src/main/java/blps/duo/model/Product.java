@@ -1,5 +1,6 @@
 package blps.duo.model;
 
+import blps.duo.adapter.DateAdapter;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlType;
